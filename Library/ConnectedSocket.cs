@@ -4,6 +4,8 @@
     using System.Net;
     using System.Net.Sockets;
     using System.Text;
+    using System.Threading;
+    using System.Threading.Tasks;
 
     /// <summary>
     /// An IPv4 TCP connected socket.
@@ -102,6 +104,19 @@
             return _encoding.GetString(buffer).TrimEnd('\0');
         }
 
+        public async Task<string> ReceiveAsync(int bufferSize = 1024)
+        {
+            var buffer = new byte[bufferSize];
+            _socket.Receive(buffer);
+
+            await Task.Factory.FromAsync(
+                (asyncCallback, state) => _socket.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, asyncCallback, state),
+                (asyncResult) => _socket.EndReceive(asyncResult),
+                TaskCreationOptions.None);
+
+            return _encoding.GetString(buffer).TrimEnd('\0');
+        }
+
         /// <summary>
         /// Sends the given data.
         /// </summary>
@@ -110,6 +125,15 @@
         {
             var bytes = _encoding.GetBytes(data);
             _socket.Send(bytes);
+        }
+
+        public Task SendAsync(string data)
+        {
+            var bytes = _encoding.GetBytes(data);
+            return Task.Factory.FromAsync(
+                (asyncCallback, state) => _socket.BeginSend(bytes, 0, bytes.Length, SocketFlags.None, asyncCallback, state),
+                (asyncResult) => _socket.EndSend(asyncResult),
+                TaskCreationOptions.None);
         }
     }
 }

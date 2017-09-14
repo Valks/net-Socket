@@ -4,6 +4,7 @@
     using System.Diagnostics.CodeAnalysis;
     using System.Net;
     using System.Net.Sockets;
+    using System.Threading.Tasks;
 
     /// <summary>
     /// An IPv4 TCP socket listener.
@@ -58,6 +59,15 @@
         public ConnectedSocket Accept()
         {
             return new ConnectedSocket(_socket.Accept());
+        }
+
+        public async Task<ConnectedSocket> AcceptAsync()
+        {
+            return new ConnectedSocket(await Task.Factory.FromAsync(
+                (asyncCallback, state) => _socket.BeginAccept(asyncCallback, state),
+                (asyncResult) => _socket.EndAccept(asyncResult),
+                TaskCreationOptions.None
+            ));
         }
 
         /// <summary>
