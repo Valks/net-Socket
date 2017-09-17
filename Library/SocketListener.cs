@@ -63,11 +63,7 @@
 
         public async Task<ConnectedSocket> AcceptAsync()
         {
-            return new ConnectedSocket(await Task.Factory.FromAsync(
-                (asyncCallback, state) => _socket.BeginAccept(asyncCallback, state),
-                (asyncResult) => _socket.EndAccept(asyncResult),
-                TaskCreationOptions.None
-            ));
+            return new ConnectedSocket(await _socket.AcceptAsync());
         }
 
         /// <summary>
