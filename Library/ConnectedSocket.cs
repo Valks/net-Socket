@@ -91,23 +91,35 @@
             _socket.Dispose();
         }
 
+        public int Receive(byte[] buffer, int offset, int count)
+        {
+            return _socket.Receive(buffer, offset, count, SocketFlags.None);
+        }
+
+        public async Task<int> ReceiveAsync(byte[] buffer, int offset, int count, CancellationToken token = default)
+        {
+            return await Task.Factory.FromAsync(
+                (asyncCallback, state) => _socket.BeginReceive(buffer, offset, count, SocketFlags.None, asyncCallback, state),
+                (asyncResult) => { return _socket.EndReceive(asyncResult); },
+                TaskCreationOptions.None);
+        }
+
         /// <summary>
         /// Receives any pending data.
         /// This blocks execution until there's data available.
         /// </summary>
         /// <param name="bufferSize">Amount of data to read</param>
         /// <returns>Received data</returns>
-        public string Receive(int bufferSize = 1024)
+        public string ReceiveString(int bufferSize = 1024)
         {
             var buffer = new byte[bufferSize];
             _socket.Receive(buffer);
             return _encoding.GetString(buffer).TrimEnd('\0');
         }
 
-        public async Task<string> ReceiveAsync(int bufferSize = 1024)
+        public async Task<string> ReceiveStringAsync(int bufferSize = 1024)
         {
             var buffer = new byte[bufferSize];
-            _socket.Receive(buffer);
 
             await Task.Factory.FromAsync(
                 (asyncCallback, state) => _socket.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, asyncCallback, state),
@@ -121,18 +133,18 @@
         /// Sends the given data.
         /// </summary>
         /// <param name="data">Data to send</param>
-        public void Send(string data)
+        public int Send(string data)
         {
             var bytes = _encoding.GetBytes(data);
-            _socket.Send(bytes);
+            return _socket.Send(bytes);
         }
 
-        public Task SendAsync(string data)
+        public Task<int> SendAsync(string data)
         {
             var bytes = _encoding.GetBytes(data);
             return Task.Factory.FromAsync(
                 (asyncCallback, state) => _socket.BeginSend(bytes, 0, bytes.Length, SocketFlags.None, asyncCallback, state),
-                (asyncResult) => _socket.EndSend(asyncResult),
+                (asyncResult) => { return _socket.EndSend(asyncResult); },
                 TaskCreationOptions.None);
         }
     }
